@@ -5,20 +5,37 @@ import {
   extractYouTubeEmbedUrl,
   filterVisiblePrayers,
   formatAudioDuration,
+  formatBirthdayPt,
+  formatEventDatePt,
   formatShortDatePt,
+  getMemberInitials,
+  getUniqueEventNames,
+  isBirthdayThisMonth,
+  isBirthdayToday,
   isDirectVideoUrl,
+  loadMemberProfileFromStorage,
   loadSnapshotFromCache,
   readPendingPrayers,
   removePendingPrayer,
+  saveMemberProfileToStorage,
   saveSnapshotToCache,
+  shouldShowInstallPopup,
+  shouldShowRegistrationPopup,
+  sortAndFilterEventPhotos,
   sortAndFilterMedia,
+  sortBirthdaysUpcoming,
+  toBirthMonthDay,
   validateAudioInput,
+  validateBirthDate,
+  validateEventPhotoInput,
   validateMediaInput,
+  validateMemberInput,
   validatePrayerInput,
   validateRadioStreamUrl,
+  wrapCarouselIndex,
   type StorageLike,
 } from './churchLogic';
-import type { ChurchSnapshot, MediaItem, PrayerRequest } from '../types/church';
+import type { ChurchSnapshot, EventPhotoItem, MediaItem, PrayerRequest } from '../types/church';
 
 function createMemoryStorage(): StorageLike {
   const map = new Map<string, string>();
@@ -198,7 +215,7 @@ test('validatePrayerInput and filterVisiblePrayers handle private requests prope
   assert.equal(filterVisiblePrayers(prayers, true).length, 2);
 });
 
-test('saveSnapshotToCache strips private prayers and pastorPin and loads back safely', () => {
+test('saveSnapshotToCache strips private prayers, members, and pastorPin and loads back safely', () => {
   const storage = createMemoryStorage();
   const snapshot: ChurchSnapshot = {
     media: sampleMedia,
@@ -207,7 +224,7 @@ test('saveSnapshotToCache strips private prayers and pastorPin and loads back sa
       verse: 'O Senhor é o meu pastor',
       reference: 'Salmos 23:1',
       reflection: 'Reflexão',
-      pastorName: 'Pr. Marcos',
+      pastorName: 'Pastor',
       updatedAt: '2026-11-20T08:00:00.000Z',
     },
     schedule: [],
@@ -229,16 +246,24 @@ test('saveSnapshotToCache strips private prayers and pastorPin and loads back sa
         createdAt: '2026-11-20T08:00:00.000Z',
       },
     ],
+    members: [
+      {
+        id: 'mem-1',
+        username: 'joaosilva',
+        avatarUrl: '/uploads/avatar.jpg',
+        createdAt: '2026-11-20T09:00:00.000Z',
+      },
+    ],
     settings: {
       churchName: 'AD SALES',
       tagline: 'Igreja',
-      address: 'Centro',
-      pixKey: 'pix@adsales.org',
-      pixBeneficiary: 'AD SALES',
-      whatsapp: '11999990000',
-      pastorName: 'Pr. Marcos',
-      pastorTitle: 'Pastor',
-      pastorAvatarUrl: '/avatar.jpg',
+      address: '',
+      pixKey: '',
+      pixBeneficiary: '',
+      whatsapp: '',
+      pastorName: 'Pastor',
+      pastorTitle: 'Pastor Presidente',
+      pastorAvatarUrl: '',
       pastorPin: 'SECRET',
     },
     updatedAt: '2026-11-20T08:00:00.000Z',
@@ -249,7 +274,81 @@ test('saveSnapshotToCache strips private prayers and pastorPin and loads back sa
   assert.ok(loaded);
   assert.equal(loaded.prayers.length, 1);
   assert.equal(loaded.prayers[0].id, 'pub');
+  assert.deepEqual(loaded.members, []);
   assert.equal(loaded.settings.pastorPin, undefined);
+});
+
+test('validateMemberInput, getMemberInitials, and member profile storage work cleanly', () => {
+  assert.equal(validateMemberInput({ username: 'A' }).valid, false);
+  assert.equal(
+    validateMemberInput({
+      username: 'Maria Oliveira',
+      hasAvatar: true,
+      mimeType: 'image/jpeg',
+      fileSizeBytes: 500_000,
+    }).valid,
+    true
+  );
+  assert.equal(
+    validateMemberInput({
+      username: 'Maria Oliveira',
+      hasAvatar: true,
+      mimeType: 'application/pdf',
+    }).valid,
+    false
+  );
+  assert.equal(getMemberInitials('Maria Oliveira'), 'MO');
+  assert.equal(getMemberInitials('@joao'), 'JO');
+
+  const storage = createMemoryStorage();
+  saveMemberProfileToStorage(storage, {
+    id: 'mem-1',
+    username: 'Maria Oliveira',
+    avatarUrl: '/uploads/a.png',
+    createdAt: '2026-11-20T10:00:00.000Z',
+  });
+  const loaded = loadMemberProfileFromStorage(storage);
+  assert.equal(loaded?.username, 'Maria Oliveira');
+  saveMemberProfileToStorage(storage, null);
+  assert.equal(loadMemberProfileFromStorage(storage), null);
+
+  assert.equal(
+    shouldShowRegistrationPopup({
+      currentMember: null,
+      dismissed: false,
+      activeTab: 'inicio',
+    }),
+    true
+  );
+  assert.equal(
+    shouldShowRegistrationPopup({
+      currentMember: {
+        id: 'mem-1',
+        username: 'Maria',
+        avatarUrl: '',
+        createdAt: '2026-11-20T10:00:00.000Z',
+      },
+      dismissed: false,
+      activeTab: 'inicio',
+    }),
+    false
+  );
+  assert.equal(
+    shouldShowRegistrationPopup({
+      currentMember: null,
+      dismissed: true,
+      activeTab: 'inicio',
+    }),
+    false
+  );
+  assert.equal(
+    shouldShowRegistrationPopup({
+      currentMember: null,
+      dismissed: false,
+      activeTab: 'pastor',
+    }),
+    false
+  );
 });
 
 test('offline pending prayer queue enqueues and removes items reliably', () => {
@@ -271,4 +370,132 @@ test('formatShortDatePt returns Hoje and Ontem accurately', () => {
   const now = new Date('2026-11-20T15:00:00.000Z');
   assert.equal(formatShortDatePt('2026-11-20T08:00:00.000Z', now), 'Hoje');
   assert.equal(formatShortDatePt('2026-11-19T20:00:00.000Z', now), 'Ontem');
+});
+
+test('validateBirthDate, formatBirthdayPt, and sortBirthdaysUpcoming handle birthdays accurately', () => {
+  const now = new Date(2026, 10, 20); // 20 Nov 2026
+  assert.equal(validateBirthDate('', now).valid, true);
+  assert.equal(validateBirthDate('1994-03-15', now).valid, true);
+  assert.equal(validateBirthDate('2027-01-01', now).valid, false);
+  assert.equal(validateBirthDate('1994-02-30', now).valid, false);
+
+  assert.equal(toBirthMonthDay('1994-03-15'), '03-15');
+  assert.equal(formatBirthdayPt('1994-11-20'), '20 de novembro');
+  assert.equal(isBirthdayToday('1994-11-20', now), true);
+  assert.equal(isBirthdayThisMonth('1990-11-28', now), true);
+  assert.equal(isBirthdayThisMonth('1990-12-01', now), false);
+
+  const sorted = sortBirthdaysUpcoming(
+    [
+      { id: '1', username: 'A', avatarUrl: '', roleTitle: 'Membro', birthMonthDay: '01-05' },
+      { id: '2', username: 'B', avatarUrl: '', roleTitle: 'Cooperador', birthMonthDay: '11-25' },
+      { id: '3', username: 'C', avatarUrl: '', roleTitle: 'Diácono', birthMonthDay: '11-20' },
+    ],
+    now
+  );
+  assert.deepEqual(
+    sorted.map((s) => s.id),
+    ['3', '2', '1']
+  );
+});
+
+test('validateEventPhotoInput, sortAndFilterEventPhotos, and wrapCarouselIndex work reliably', () => {
+  assert.equal(
+    validateEventPhotoInput({ title: 'Culto', eventName: '', fileCount: 1 }).valid,
+    false
+  );
+  assert.equal(
+    validateEventPhotoInput({ title: 'Culto', eventName: 'Culto da Família', fileCount: 0 }).valid,
+    false
+  );
+  assert.equal(
+    validateEventPhotoInput({
+      title: 'Momento de Louvor',
+      eventName: 'Culto da Família',
+      fileCount: 2,
+      files: [
+        { type: 'image/jpeg', size: 500_000 },
+        { type: 'image/png', size: 600_000 },
+      ],
+    }).valid,
+    true
+  );
+  assert.equal(
+    validateEventPhotoInput({
+      title: 'Arquivo Inválido',
+      eventName: 'Batismo',
+      fileCount: 1,
+      files: [{ type: 'application/pdf', size: 1000 }],
+    }).valid,
+    false
+  );
+
+  const photos: EventPhotoItem[] = [
+    {
+      id: 'ev1',
+      title: 'Louvor',
+      eventName: 'Culto da Família',
+      eventDate: '2026-11-10',
+      photoUrl: '/uploads/1.jpg',
+      authorName: 'Pastor',
+      createdAt: '2026-11-10T20:00:00.000Z',
+    },
+    {
+      id: 'ev2',
+      title: 'Consagração',
+      eventName: 'Congresso de Jovens',
+      eventDate: '2026-11-18',
+      photoUrl: '/uploads/2.jpg',
+      authorName: 'Pastor',
+      createdAt: '2026-11-18T21:00:00.000Z',
+    },
+  ];
+
+  const sortedAll = sortAndFilterEventPhotos(photos, 'all');
+  assert.deepEqual(
+    sortedAll.map((p) => p.id),
+    ['ev2', 'ev1']
+  );
+  assert.equal(sortAndFilterEventPhotos(photos, 'culto da familia').length, 1);
+  assert.deepEqual(getUniqueEventNames(photos), ['Culto da Família', 'Congresso de Jovens']);
+  assert.equal(wrapCarouselIndex(-1, 3), 2);
+  assert.equal(wrapCarouselIndex(3, 3), 0);
+  assert.equal(formatEventDatePt('2026-11-20'), '20 de novembro de 2026');
+});
+
+test('shouldShowInstallPopup and chained registration popup behave safely', () => {
+  assert.equal(
+    shouldShowInstallPopup({ isStandalone: false, dismissed: false, activeTab: 'inicio' }),
+    true
+  );
+  assert.equal(
+    shouldShowInstallPopup({ isStandalone: true, dismissed: false, activeTab: 'inicio' }),
+    false
+  );
+  assert.equal(
+    shouldShowInstallPopup({ isStandalone: false, dismissed: true, activeTab: 'inicio' }),
+    false
+  );
+  assert.equal(
+    shouldShowInstallPopup({ isStandalone: false, dismissed: false, activeTab: 'pastor' }),
+    false
+  );
+  assert.equal(
+    shouldShowRegistrationPopup({
+      currentMember: null,
+      dismissed: false,
+      activeTab: 'inicio',
+      installPopupVisible: true,
+    }),
+    false
+  );
+  assert.equal(
+    shouldShowRegistrationPopup({
+      currentMember: null,
+      dismissed: false,
+      activeTab: 'inicio',
+      installPopupVisible: false,
+    }),
+    true
+  );
 });

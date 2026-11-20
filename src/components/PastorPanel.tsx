@@ -29,6 +29,8 @@ import {
   formatShortDatePt,
   validateMediaInput,
 } from '../utils/churchLogic';
+import { PastorEventPhotosTab } from './PastorEventPhotosTab';
+import { PastorMembersTab } from './PastorMembersTab';
 import { PastorRadioAudioTab } from './PastorRadioAudioTab';
 
 interface PastorPanelProps {
@@ -41,7 +43,7 @@ interface PastorPanelProps {
   onSnapshotUpdated: (next: ChurchSnapshot) => void;
 }
 
-type PastorSubTab = 'publicar' | 'radio' | 'gerenciar' | 'palavra' | 'oracoes' | 'config';
+type PastorSubTab = 'publicar' | 'fotos' | 'radio' | 'gerenciar' | 'palavra' | 'oracoes' | 'membros' | 'config';
 type PublishMode = 'banner' | 'video-file' | 'video-link' | 'aviso';
 
 const CATEGORIES = [
@@ -533,6 +535,15 @@ export function PastorPanel({
             <Lock className="h-4 w-4" strokeWidth={1.75} />
             {unlocking ? 'Verificando...' : 'Entrar no Painel'}
           </button>
+
+          <button
+            type="button"
+            onClick={onLock}
+            className="w-full min-h-[44px] inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-xs sm:text-sm font-semibold text-slate-700 hover:bg-slate-100 transition-colors"
+          >
+            <LogOut className="h-4 w-4" strokeWidth={1.75} />
+            Sair para o Aplicativo
+          </button>
         </form>
       </section>
     );
@@ -545,8 +556,8 @@ export function PastorPanel({
       <div className="rounded-3xl bg-white border border-slate-200/90 p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">
           <img
-            src={snapshot.settings.pastorAvatarUrl}
-            alt={snapshot.settings.pastorName}
+            src={snapshot.settings.pastorAvatarUrl || '/assets/ad-sales-logo.png'}
+            alt={snapshot.settings.pastorName || snapshot.settings.churchName}
             referrerPolicy="no-referrer"
             className="h-12 w-12 rounded-full object-cover border border-slate-200 shrink-0"
           />
@@ -555,7 +566,7 @@ export function PastorPanel({
               Painel do Pastor
             </h2>
             <p className="text-xs text-slate-500">
-              {snapshot.settings.pastorName} ·{' '}
+              {snapshot.settings.pastorName || 'Pastor'} ·{' '}
               {isRealtimeConnected ? 'Sincronização em tempo real ativa' : 'Reconectando sincronização...'}
             </p>
           </div>
@@ -564,10 +575,10 @@ export function PastorPanel({
         <button
           type="button"
           onClick={onLock}
-          className="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs sm:text-sm font-semibold text-slate-700 hover:bg-slate-100 transition-colors self-start sm:self-auto whitespace-nowrap shrink-0"
+          className="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 py-2 rounded-xl border border-red-200 bg-red-50 text-xs sm:text-sm font-semibold text-red-700 hover:bg-red-100 transition-colors self-start sm:self-auto whitespace-nowrap shrink-0"
         >
           <LogOut className="h-4 w-4" strokeWidth={1.75} />
-          Bloquear Painel
+          Sair do Painel
         </button>
       </div>
 
@@ -580,10 +591,12 @@ export function PastorPanel({
         {(
           [
             { id: 'publicar', label: 'Publicar' },
+            { id: 'fotos', label: `Fotos (${(snapshot.eventPhotos ?? []).length})` },
             { id: 'radio', label: 'Rádio & Áudio' },
             { id: 'gerenciar', label: `Mídia (${snapshot.media.length})` },
             { id: 'palavra', label: 'Palavra & Cultos' },
             { id: 'oracoes', label: `Orações (${snapshot.prayers.length})` },
+            { id: 'membros', label: `Membros (${(snapshot.members ?? []).length})` },
             { id: 'config', label: 'Configurações' },
           ] as { id: PastorSubTab; label: string }[]
         ).map((tab) => {
@@ -606,6 +619,15 @@ export function PastorPanel({
           );
         })}
       </div>
+
+      {/* TAB: EVENT PHOTOS GALLERY */}
+      {subTab === 'fotos' && (
+        <PastorEventPhotosTab
+          snapshot={snapshot}
+          pastorPin={pastorPin}
+          onSnapshotUpdated={onSnapshotUpdated}
+        />
+      )}
 
       {/* TAB: RADIO & AUDIO STUDIO */}
       {subTab === 'radio' && (
@@ -1295,6 +1317,15 @@ export function PastorPanel({
         </div>
       )}
 
+      {/* TAB: REGISTERED MEMBERS DIRECTORY */}
+      {subTab === 'membros' && (
+        <PastorMembersTab
+          snapshot={snapshot}
+          pastorPin={pastorPin}
+          onSnapshotUpdated={onSnapshotUpdated}
+        />
+      )}
+
       {/* TAB 5: CHURCH & PIX SETTINGS */}
       {subTab === 'config' && (
         <form
@@ -1421,6 +1452,17 @@ export function PastorPanel({
           </button>
         </form>
       )}
+
+      <div className="pt-2 flex justify-end">
+        <button
+          type="button"
+          onClick={onLock}
+          className="inline-flex items-center justify-center gap-2 min-h-[44px] px-5 py-2.5 rounded-xl border border-red-200 bg-white text-xs sm:text-sm font-semibold text-red-700 hover:bg-red-50 transition-colors whitespace-nowrap"
+        >
+          <LogOut className="h-4 w-4" strokeWidth={1.75} />
+          Sair do Painel Admin
+        </button>
+      </div>
     </section>
   );
 }

@@ -61,6 +61,24 @@ export interface PendingPrayerPayload {
   queuedAt: string;
 }
 
+export interface MemberProfile {
+  id: string;
+  username: string;
+  avatarUrl: string;
+  birthDate?: string;
+  roleTitle?: string;
+  showInMembers?: boolean;
+  createdAt: string;
+}
+
+export interface PublicMemberCard {
+  id: string;
+  username: string;
+  avatarUrl: string;
+  roleTitle: string;
+  birthMonthDay?: string;
+}
+
 export interface ChurchSettings {
   churchName: string;
   tagline: string;
@@ -77,12 +95,27 @@ export interface ChurchSettings {
   radioStreamUrl?: string;
 }
 
+export interface EventPhotoItem {
+  id: string;
+  title: string;
+  eventName: string;
+  eventDate?: string;
+  caption?: string;
+  photoUrl: string;
+  authorName: string;
+  createdAt: string;
+}
+
 export interface ChurchSnapshot {
   media: MediaItem[];
+  eventPhotos?: EventPhotoItem[];
   audios: AudioMessage[];
   dailyWord: DailyWord;
   schedule: ServiceScheduleItem[];
   prayers: PrayerRequest[];
+  members?: MemberProfile[];
+  publicMembers?: PublicMemberCard[];
+  birthdays?: PublicMemberCard[];
   settings: ChurchSettings;
   updatedAt: string;
 }

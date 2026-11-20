@@ -1,10 +1,13 @@
 import type {
   ChurchSnapshot,
+  EventPhotoItem,
   MediaFilter,
   MediaItem,
   MediaKind,
+  MemberProfile,
   PendingPrayerPayload,
   PrayerRequest,
+  PublicMemberCard,
 } from '../types/church';
 
 export const MAX_IMAGE_BYTES = 15 * 1024 * 1024; // 15 MB
@@ -13,6 +16,7 @@ export const MAX_AUDIO_BYTES = 40 * 1024 * 1024; // 40 MB
 
 export const SNAPSHOT_CACHE_KEY = 'adsales_snapshot_cache_v1';
 export const PENDING_PRAYERS_KEY = 'adsales_pending_prayers_v1';
+export const MEMBER_PROFILE_KEY = 'adsales_member_profile_v1';
 
 const ALLOWED_IMAGE_MIMES = new Set([
   'image/jpeg',
@@ -227,6 +231,105 @@ export function validateMediaInput(input: MediaValidationInput): ValidationResul
   return { valid: true };
 }
 
+export function validateEventPhotoInput(input: {
+  title: string;
+  eventName: string;
+  fileCount: number;
+  files?: { size?: number; type?: string }[];
+}): ValidationResult {
+  if (input.eventName.trim().length < 2) {
+    return {
+      valid: false,
+      error: 'Informe o nome do culto ou evento (ex: Culto da Família).',
+    };
+  }
+  if (input.title.trim().length < 3) {
+    return {
+      valid: false,
+      error: 'Informe um título para os registros (mínimo 3 caracteres).',
+    };
+  }
+  if (input.fileCount < 1) {
+    return {
+      valid: false,
+      error: 'Selecione pelo menos 1 foto do evento.',
+    };
+  }
+  if (input.fileCount > 12) {
+    return {
+      valid: false,
+      error: 'Envie no máximo 12 fotos por vez.',
+    };
+  }
+  for (const file of input.files ?? []) {
+    if (
+      file.type &&
+      !ALLOWED_IMAGE_MIMES.has(file.type.toLowerCase()) &&
+      !file.type.toLowerCase().startsWith('image/')
+    ) {
+      return {
+        valid: false,
+        error: 'Formato de imagem não suportado. Use JPG, PNG ou WebP.',
+      };
+    }
+    if (file.size && file.size > MAX_IMAGE_BYTES) {
+      return {
+        valid: false,
+        error: 'Uma das fotos excede o limite de 15 MB.',
+      };
+    }
+  }
+  return { valid: true };
+}
+
+export function sortAndFilterEventPhotos(
+  photos: EventPhotoItem[],
+  eventFilter = 'all'
+): EventPhotoItem[] {
+  const normalizedFilter = normalizeText(eventFilter);
+  return photos
+    .filter((item) => {
+      if (!eventFilter || eventFilter === 'all') return true;
+      return normalizeText(item.eventName) === normalizedFilter;
+    })
+    .slice()
+    .sort((a, b) => {
+      const dateA = a.eventDate ? new Date(`${a.eventDate}T12:00:00`).getTime() : 0;
+      const dateB = b.eventDate ? new Date(`${b.eventDate}T12:00:00`).getTime() : 0;
+      if (dateA !== dateB) return dateB - dateA;
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+}
+
+export function getUniqueEventNames(photos: EventPhotoItem[]): string[] {
+  const seen = new Map<string, string>();
+  for (const photo of photos) {
+    const clean = photo.eventName.trim();
+    if (!clean) continue;
+    const key = normalizeText(clean);
+    if (!seen.has(key)) {
+      seen.set(key, clean);
+    }
+  }
+  return Array.from(seen.values());
+}
+
+export function wrapCarouselIndex(index: number, total: number): number {
+  if (total <= 0) return 0;
+  return ((index % total) + total) % total;
+}
+
+export function formatEventDatePt(eventDate?: string, fallbackIso?: string): string {
+  if (eventDate && /^\d{4}-\d{2}-\d{2}$/.test(eventDate.trim())) {
+    const [y, m, d] = eventDate.trim().split('-').map(Number);
+    const monthName = MONTHS_PT[m - 1];
+    if (monthName && d >= 1 && d <= 31) {
+      return `${d} de ${monthName} de ${y}`;
+    }
+  }
+  return fallbackIso ? formatShortDatePt(fallbackIso) : '';
+}
+
 export function validateAudioInput(input: {
   title: string;
   hasFile: boolean;
@@ -309,6 +412,171 @@ export function validatePrayerInput(
   return { valid: true };
 }
 
+export function validateMemberInput(input: {
+  username: string;
+  hasAvatar?: boolean;
+  fileSizeBytes?: number;
+  mimeType?: string;
+}): ValidationResult {
+  const clean = input.username.trim();
+  if (clean.length < 2) {
+    return {
+      valid: false,
+      error: 'Informe seu nome de usuário com pelo menos 2 caracteres.',
+    };
+  }
+  if (clean.length > 40) {
+    return {
+      valid: false,
+      error: 'O nome de usuário deve ter no máximo 40 caracteres.',
+    };
+  }
+  if (input.hasAvatar) {
+    if (
+      input.mimeType &&
+      !ALLOWED_IMAGE_MIMES.has(input.mimeType.toLowerCase()) &&
+      !input.mimeType.toLowerCase().startsWith('image/')
+    ) {
+      return {
+        valid: false,
+        error: 'Selecione uma foto válida (JPG, PNG ou WebP).',
+      };
+    }
+    if (input.fileSizeBytes && input.fileSizeBytes > MAX_IMAGE_BYTES) {
+      return {
+        valid: false,
+        error: 'A foto de perfil excede o limite de 15 MB.',
+      };
+    }
+  }
+  return { valid: true };
+}
+
+export function validateBirthDate(raw: string, now = new Date()): ValidationResult {
+  const trimmed = raw.trim();
+  if (!trimmed) {
+    return { valid: true };
+  }
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(trimmed);
+  if (!match) {
+    return {
+      valid: false,
+      error: 'Informe uma data de nascimento válida.',
+    };
+  }
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const currentYear = now.getFullYear();
+
+  if (year < 1900 || year > currentYear || month < 1 || month > 12 || day < 1 || day > 31) {
+    return {
+      valid: false,
+      error: 'Informe uma data de nascimento válida.',
+    };
+  }
+
+  const check = new Date(year, month - 1, day);
+  if (
+    check.getFullYear() !== year ||
+    check.getMonth() !== month - 1 ||
+    check.getDate() !== day
+  ) {
+    return {
+      valid: false,
+      error: 'Data de nascimento inválida no calendário.',
+    };
+  }
+
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  if (check.getTime() > today.getTime()) {
+    return {
+      valid: false,
+      error: 'A data de nascimento não pode ser no futuro.',
+    };
+  }
+  return { valid: true };
+}
+
+const MONTHS_PT = [
+  'janeiro',
+  'fevereiro',
+  'março',
+  'abril',
+  'maio',
+  'junho',
+  'julho',
+  'agosto',
+  'setembro',
+  'outubro',
+  'novembro',
+  'dezembro',
+];
+
+export function toBirthMonthDay(birthDate?: string): string | undefined {
+  if (!birthDate) return undefined;
+  const trimmed = birthDate.trim();
+  const full = /^\d{4}-(\d{2})-(\d{2})$/.exec(trimmed);
+  if (full) return `${full[1]}-${full[2]}`;
+  const short = /^(\d{2})-(\d{2})$/.exec(trimmed);
+  if (short) return `${short[1]}-${short[2]}`;
+  return undefined;
+}
+
+export function formatBirthdayPt(dateOrMonthDay?: string): string {
+  const mmdd = toBirthMonthDay(dateOrMonthDay);
+  if (!mmdd) return '';
+  const [mStr, dStr] = mmdd.split('-');
+  const monthIdx = Number(mStr) - 1;
+  const day = Number(dStr);
+  if (monthIdx < 0 || monthIdx > 11 || day < 1 || day > 31) return '';
+  return `${day} de ${MONTHS_PT[monthIdx]}`;
+}
+
+export function isBirthdayToday(dateOrMonthDay?: string, now = new Date()): boolean {
+  const mmdd = toBirthMonthDay(dateOrMonthDay);
+  if (!mmdd) return false;
+  const current = `${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  return mmdd === current;
+}
+
+export function isBirthdayThisMonth(dateOrMonthDay?: string, now = new Date()): boolean {
+  const mmdd = toBirthMonthDay(dateOrMonthDay);
+  if (!mmdd) return false;
+  const month = Number(mmdd.split('-')[0]);
+  return month === now.getMonth() + 1;
+}
+
+export function sortBirthdaysUpcoming(
+  items: PublicMemberCard[],
+  now = new Date()
+): PublicMemberCard[] {
+  const currentMonth = now.getMonth() + 1;
+  const currentDay = now.getDate();
+
+  const daysUntil = (mmdd?: string): number => {
+    if (!mmdd) return 9999;
+    const [m, d] = mmdd.split('-').map(Number);
+    const keyNow = currentMonth * 100 + currentDay;
+    const keyItem = m * 100 + d;
+    if (keyItem >= keyNow) return keyItem - keyNow;
+    return 1200 + keyItem - keyNow;
+  };
+
+  return items.slice().sort((a, b) => daysUntil(a.birthMonthDay) - daysUntil(b.birthMonthDay));
+}
+
+export function getMemberInitials(username: string): string {
+  const parts = username
+    .replace(/^@+/, '')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  if (parts.length === 0) return 'AD';
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+}
+
 export function formatShortDatePt(isoDate: string, now = new Date()): string {
   const date = new Date(isoDate);
   if (Number.isNaN(date.getTime())) return '';
@@ -346,15 +614,18 @@ export function applyRealtimeSnapshot(
   return {
     ...incoming,
     media: incoming.media ?? current.media,
+    eventPhotos: incoming.eventPhotos ?? current.eventPhotos ?? [],
     audios: incoming.audios ?? current.audios ?? [],
     schedule: incoming.schedule ?? current.schedule,
     prayers: incoming.prayers ?? current.prayers,
+    publicMembers: incoming.publicMembers ?? current.publicMembers ?? [],
+    birthdays: incoming.birthdays ?? current.birthdays ?? [],
   };
 }
 
 /**
  * Persists a public-safe snapshot to localStorage for instant offline fallback.
- * Private prayer requests and pastorPin are never written to public cache.
+ * Private prayer requests, member directory, and pastorPin are never written to public cache.
  */
 export function saveSnapshotToCache(
   storage: StorageLike | null | undefined,
@@ -366,8 +637,10 @@ export function saveSnapshotToCache(
     const { pastorPin: _pin, ...safeSettings } = snapshot.settings;
     const sanitized: ChurchSnapshot = {
       ...snapshot,
+      eventPhotos: snapshot.eventPhotos ?? [],
       audios: snapshot.audios ?? [],
       prayers: snapshot.prayers.filter((p) => !p.isPrivate),
+      members: [],
       settings: safeSettings,
     };
     storage.setItem(key, JSON.stringify(sanitized));
@@ -390,6 +663,7 @@ export function loadSnapshotFromCache(
     }
     return {
       ...parsed,
+      eventPhotos: Array.isArray(parsed.eventPhotos) ? parsed.eventPhotos : [],
       audios: Array.isArray(parsed.audios) ? parsed.audios : [],
     };
   } catch {
@@ -448,4 +722,65 @@ export function removePendingPrayer(
     }
   }
   return next;
+}
+
+export function saveMemberProfileToStorage(
+  storage: StorageLike | null | undefined,
+  member: MemberProfile | null,
+  key = MEMBER_PROFILE_KEY
+): void {
+  if (!storage) return;
+  try {
+    if (!member) {
+      storage.removeItem(key);
+    } else {
+      storage.setItem(key, JSON.stringify(member));
+    }
+  } catch {
+    // Ignore storage errors
+  }
+}
+
+export function loadMemberProfileFromStorage(
+  storage: StorageLike | null | undefined,
+  key = MEMBER_PROFILE_KEY
+): MemberProfile | null {
+  if (!storage) return null;
+  try {
+    const raw = storage.getItem(key);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as MemberProfile;
+    if (!parsed || typeof parsed.id !== 'string' || typeof parsed.username !== 'string') {
+      return null;
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+export function shouldShowInstallPopup(params: {
+  isStandalone: boolean;
+  dismissed: boolean;
+  activeTab: string;
+}): boolean {
+  if (params.isStandalone) return false;
+  if (params.dismissed) return false;
+  if (params.activeTab === 'pastor') return false;
+  return true;
+}
+
+export function shouldShowRegistrationPopup(params: {
+  currentMember: MemberProfile | null;
+  dismissed: boolean;
+  activeTab: string;
+  installPopupVisible?: boolean;
+}): boolean {
+  if (params.installPopupVisible) return false;
+  if (params.currentMember) return false;
+  if (params.dismissed) return false;
+  if (params.activeTab === 'pastor' || params.activeTab === 'perfil') {
+    return false;
+  }
+  return true;
 }

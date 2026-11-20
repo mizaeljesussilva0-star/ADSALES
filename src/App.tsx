@@ -1,22 +1,32 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { WifiOff } from 'lucide-react';
 import { AudioAndRadioSection } from './components/AudioAndRadioSection';
+import { EventPhotoCarousel } from './components/EventPhotoCarousel';
 import { HeroSpotlight } from './components/HeroSpotlight';
 import { MediaGallery } from './components/MediaGallery';
 import { MediaViewerModal } from './components/MediaViewerModal';
+import { MemberProfileView } from './components/MemberProfileView';
+import { MemberRegistrationModal } from './components/MemberRegistrationModal';
+import { MembersAreaView } from './components/MembersAreaView';
 import { PastorPanel } from './components/PastorPanel';
 import { PrayerWall } from './components/PrayerWall';
+import { PWAInstallModal } from './components/PWAInstallModal';
 import { ScheduleAndOffering } from './components/ScheduleAndOffering';
 import { TopNav, type AppTab } from './components/TopNav';
 import { WordOfTheDay } from './components/WordOfTheDay';
-import type { ChurchSnapshot, MediaItem } from './types/church';
+import { usePWAInstall } from './hooks/usePWAInstall';
+import type { ChurchSnapshot, MediaItem, MemberProfile } from './types/church';
 import {
   applyRealtimeSnapshot,
   enqueuePendingPrayer,
+  loadMemberProfileFromStorage,
   loadSnapshotFromCache,
   readPendingPrayers,
   removePendingPrayer,
+  saveMemberProfileToStorage,
   saveSnapshotToCache,
+  shouldShowInstallPopup,
+  shouldShowRegistrationPopup,
   sortAndFilterMedia,
 } from './utils/churchLogic';
 
@@ -70,6 +80,25 @@ export default function App() {
   const [amenedIds, setAmenedIds] = useState<string[]>(() =>
     loadStoredIds(AMEN_STORAGE_KEY)
   );
+  const [currentMember, setCurrentMember] = useState<MemberProfile | null>(() =>
+    loadMemberProfileFromStorage(getLocalStorageSafe())
+  );
+  const [dismissedRegisterPopup, setDismissedRegisterPopup] = useState(false);
+  const [dismissedInstallPopup, setDismissedInstallPopup] = useState(false);
+
+  const pwaInstall = usePWAInstall();
+
+  const handleMemberSaved = useCallback((member: MemberProfile) => {
+    setCurrentMember(member);
+    saveMemberProfileToStorage(getLocalStorageSafe(), member);
+    setDismissedRegisterPopup(true);
+  }, []);
+
+  const handleMemberLogout = useCallback(() => {
+    setCurrentMember(null);
+    saveMemberProfileToStorage(getLocalStorageSafe(), null);
+    setDismissedRegisterPopup(true);
+  }, []);
 
   const persistSnapshot = useCallback((next: ChurchSnapshot) => {
     setSnapshot(next);
@@ -276,6 +305,8 @@ export default function App() {
     } catch {
       // Ignore storage failures
     }
+    setActiveTab('inicio');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
     fetchSnapshot('');
   };
 
@@ -366,12 +397,21 @@ export default function App() {
     return snapshot.prayers.filter((p) => !p.isPrivate);
   }, [snapshot]);
 
+  const showInstallPopup =
+    Boolean(snapshot) &&
+    shouldShowInstallPopup({
+      isStandalone: pwaInstall.isInstalled,
+      dismissed: dismissedInstallPopup,
+      activeTab,
+    });
+
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900">
+    <div className="min-h-dvh flex flex-col bg-slate-50 text-slate-900">
       <TopNav
         activeTab={activeTab}
         onSelectTab={handleSelectTab}
         isPastorUnlocked={isPastorUnlocked}
+        currentMember={currentMember}
       />
 
       {isUsingOfflineCache && snapshot && (
@@ -386,7 +426,7 @@ export default function App() {
         </div>
       )}
 
-      <main className="flex-1 mx-auto w-full max-w-6xl px-4 sm:px-6 pt-6 pb-24 md:pb-14">
+      <main className="flex-1 mx-auto w-full max-w-6xl px-3 sm:px-6 pt-5 sm:pt-6 pb-24 md:pb-14 px-safe">
         {loading && !snapshot ? (
           <div className="space-y-6 animate-pulse">
             <div className="h-80 rounded-3xl bg-slate-200" />
@@ -416,6 +456,7 @@ export default function App() {
                   featuredItems={featuredItems}
                   settings={snapshot.settings}
                   nextService={snapshot.schedule[0]}
+                  currentMember={currentMember}
                   onOpenMedia={setViewerItem}
                   onNavigateTab={handleSelectTab}
                 />
@@ -427,6 +468,7 @@ export default function App() {
                   audios={snapshot.audios ?? []}
                   settings={snapshot.settings}
                 />
+                <EventPhotoCarousel photos={snapshot.eventPhotos ?? []} />
                 <MediaGallery
                   items={snapshot.media}
                   onOpenMedia={setViewerItem}
@@ -444,6 +486,7 @@ export default function App() {
 
             {activeTab === 'midia' && (
               <div className="space-y-10">
+                <EventPhotoCarousel photos={snapshot.eventPhotos ?? []} />
                 <AudioAndRadioSection
                   audios={snapshot.audios ?? []}
                   settings={snapshot.settings}
@@ -453,6 +496,14 @@ export default function App() {
                   onOpenMedia={setViewerItem}
                 />
               </div>
+            )}
+
+            {activeTab === 'membros' && (
+              <MembersAreaView
+                publicMembers={snapshot.publicMembers ?? []}
+                birthdays={snapshot.birthdays ?? []}
+                onGoToProfile={() => handleSelectTab('perfil')}
+              />
             )}
 
             {activeTab === 'agenda' && (
@@ -466,6 +517,7 @@ export default function App() {
                 <PrayerWall
                   prayers={publicPrayers}
                   amenedIds={amenedIds}
+                  defaultAuthorName={currentMember?.username}
                   onSubmitPrayer={handleSubmitPrayer}
                   onAmenPrayer={handleAmenPrayer}
                 />
@@ -476,8 +528,17 @@ export default function App() {
               <PrayerWall
                 prayers={publicPrayers}
                 amenedIds={amenedIds}
+                defaultAuthorName={currentMember?.username}
                 onSubmitPrayer={handleSubmitPrayer}
                 onAmenPrayer={handleAmenPrayer}
+              />
+            )}
+
+            {activeTab === 'perfil' && (
+              <MemberProfileView
+                currentMember={currentMember}
+                onMemberSaved={handleMemberSaved}
+                onMemberLogout={handleMemberLogout}
               />
             )}
 
@@ -510,10 +571,18 @@ export default function App() {
               <strong className="font-bold text-[#0F2D5C]">
                 {snapshot?.settings.churchName ?? 'AD SALES'}
               </strong>{' '}
-              — Igreja Evangélica · {snapshot?.settings.address}
+              — Igreja Evangélica
+              {snapshot?.settings.address ? ` · ${snapshot.settings.address}` : ''}
             </span>
           </div>
           <div className="flex items-center gap-5">
+            <button
+              type="button"
+              onClick={() => handleSelectTab('membros')}
+              className="hover:text-blue-700 transition-colors"
+            >
+              Membros e Aniversários
+            </button>
             <button
               type="button"
               onClick={() => handleSelectTab('agenda')}
@@ -542,6 +611,32 @@ export default function App() {
       <MediaViewerModal
         item={viewerItem}
         onClose={() => setViewerItem(null)}
+      />
+
+      <PWAInstallModal
+        open={showInstallPopup}
+        churchName={snapshot?.settings.churchName ?? 'AD SALES'}
+        isInstallable={pwaInstall.isInstallable}
+        isInstalled={pwaInstall.isInstalled}
+        isIOS={pwaInstall.isIOS}
+        swReady={pwaInstall.swReady}
+        onTriggerInstall={pwaInstall.install}
+        onClose={() => setDismissedInstallPopup(true)}
+      />
+
+      <MemberRegistrationModal
+        open={
+          Boolean(snapshot) &&
+          shouldShowRegistrationPopup({
+            currentMember,
+            dismissed: dismissedRegisterPopup,
+            activeTab,
+            installPopupVisible: showInstallPopup,
+          })
+        }
+        churchName={snapshot?.settings.churchName ?? 'AD SALES'}
+        onMemberSaved={handleMemberSaved}
+        onClose={() => setDismissedRegisterPopup(true)}
       />
     </div>
   );

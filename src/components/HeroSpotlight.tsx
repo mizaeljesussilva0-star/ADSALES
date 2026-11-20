@@ -6,22 +6,30 @@ import {
   MapPin,
   Play,
   Maximize2,
+  UserPlus,
 } from 'lucide-react';
-import type { ChurchSettings, MediaItem, ServiceScheduleItem } from '../types/church';
-import { formatShortDatePt } from '../utils/churchLogic';
+import type {
+  ChurchSettings,
+  MediaItem,
+  MemberProfile,
+  ServiceScheduleItem,
+} from '../types/church';
+import { formatShortDatePt, getMemberInitials } from '../utils/churchLogic';
 
 interface HeroSpotlightProps {
   featuredItems: MediaItem[];
   settings: ChurchSettings;
   nextService?: ServiceScheduleItem;
+  currentMember: MemberProfile | null;
   onOpenMedia: (item: MediaItem) => void;
-  onNavigateTab: (tab: 'agenda' | 'oracao' | 'midia') => void;
+  onNavigateTab: (tab: 'agenda' | 'oracao' | 'midia' | 'perfil') => void;
 }
 
 export function HeroSpotlight({
   featuredItems,
   settings,
   nextService,
+  currentMember,
   onOpenMedia,
   onNavigateTab,
 }: HeroSpotlightProps) {
@@ -217,21 +225,78 @@ export function HeroSpotlight({
             {settings.tagline}. Acompanhe nossa agenda de cultos, mensagens em vídeo, avisos da igreja e pedidos de oração em tempo real.
           </p>
 
-          <div className="pt-2 border-t border-slate-100 space-y-2.5 text-sm text-slate-700">
-            <div className="flex items-start gap-2.5">
-              <MapPin className="h-4 w-4 text-blue-700 mt-0.5 shrink-0" strokeWidth={1.75} />
-              <span>{settings.address}</span>
+          {(settings.address || nextService) && (
+            <div className="pt-2 border-t border-slate-100 space-y-2.5 text-sm text-slate-700">
+              {settings.address && (
+                <div className="flex items-start gap-2.5">
+                  <MapPin className="h-4 w-4 text-blue-700 mt-0.5 shrink-0" strokeWidth={1.75} />
+                  <span>{settings.address}</span>
+                </div>
+              )}
+              {nextService && (
+                <div className="flex items-start gap-2.5">
+                  <Clock className="h-4 w-4 text-blue-700 mt-0.5 shrink-0" strokeWidth={1.75} />
+                  <span>
+                    Próximo encontro: <strong className="font-semibold text-slate-900">{nextService.title}</strong> ({nextService.dayOfWeek},{' '}
+                    <span className="tabular-nums">{nextService.time}</span>)
+                  </span>
+                </div>
+              )}
             </div>
-            {nextService && (
-              <div className="flex items-start gap-2.5">
-                <Clock className="h-4 w-4 text-blue-700 mt-0.5 shrink-0" strokeWidth={1.75} />
-                <span>
-                  Próximo encontro: <strong className="font-semibold text-slate-900">{nextService.title}</strong> ({nextService.dayOfWeek},{' '}
-                  <span className="tabular-nums">{nextService.time}</span>)
+          )}
+
+          {/* Member Registration / Profile Status Strip */}
+          <button
+            type="button"
+            onClick={() => onNavigateTab('perfil')}
+            className="w-full rounded-2xl border border-slate-200/90 bg-slate-50/80 px-3.5 py-2.5 flex items-center justify-between gap-3 text-left hover:bg-blue-50/70 hover:border-blue-200 transition-colors min-h-[48px]"
+          >
+            {currentMember ? (
+              <>
+                <div className="flex items-center gap-2.5 min-w-0">
+                  {currentMember.avatarUrl ? (
+                    <img
+                      src={currentMember.avatarUrl}
+                      alt={currentMember.username}
+                      className="h-8 w-8 rounded-full object-cover border border-slate-200 shrink-0"
+                    />
+                  ) : (
+                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#0F2D5C] text-xs font-bold text-white shrink-0">
+                      {getMemberInitials(currentMember.username)}
+                    </span>
+                  )}
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold text-slate-900 truncate">
+                      {currentMember.username}
+                    </p>
+                    <p className="text-[11px] text-slate-500">Perfil cadastrado</p>
+                  </div>
+                </div>
+                <span className="text-xs font-semibold text-blue-700 shrink-0">
+                  Editar
                 </span>
-              </div>
+              </>
+            ) : (
+              <>
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-blue-700 shrink-0">
+                    <UserPlus className="h-4 w-4" strokeWidth={1.75} />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold text-slate-900">
+                      Cadastre-se na igreja
+                    </p>
+                    <p className="text-[11px] text-slate-500">
+                      Adicione seu nome de usuário e foto
+                    </p>
+                  </div>
+                </div>
+                <span className="text-xs font-semibold text-blue-700 shrink-0">
+                  Cadastrar
+                </span>
+              </>
             )}
-          </div>
+          </button>
         </div>
 
         <div className="flex flex-wrap items-center gap-3 pt-2">

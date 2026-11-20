@@ -126,46 +126,60 @@ export function ScheduleAndOffering({
         </div>
 
         <div className="rounded-2xl bg-white/10 border border-white/15 p-4 space-y-3">
-          <div>
-            <p className="text-xs text-blue-200">Favorecido</p>
-            <p className="text-sm font-semibold text-white">
-              {settings.pixBeneficiary}
+          {settings.pixKey ? (
+            <>
+              {settings.pixBeneficiary && (
+                <div>
+                  <p className="text-xs text-blue-200">Favorecido</p>
+                  <p className="text-sm font-semibold text-white">
+                    {settings.pixBeneficiary}
+                  </p>
+                </div>
+              )}
+              <div>
+                <p className="text-xs text-blue-200">Chave PIX</p>
+                <p className="font-mono text-sm sm:text-base font-medium text-white break-all mt-0.5">
+                  {settings.pixKey}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleCopyPix}
+                className="w-full min-h-[44px] inline-flex items-center justify-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-bold text-[#0F2D5C] hover:bg-blue-50 transition-colors focus-visible:outline-2 focus-visible:outline-white"
+              >
+                {copiedPix ? (
+                  <>
+                    <Check className="h-4 w-4 text-blue-700" strokeWidth={2.25} />
+                    Chave PIX copiada!
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-4 w-4" strokeWidth={1.75} />
+                    Copiar Chave PIX
+                  </>
+                )}
+              </button>
+            </>
+          ) : (
+            <p className="text-sm text-blue-100/90">
+              A chave PIX para dízimos e ofertas será exibida aqui assim que for configurada no Painel do Pastor.
             </p>
-          </div>
-          <div>
-            <p className="text-xs text-blue-200">Chave PIX</p>
-            <p className="font-mono text-sm sm:text-base font-medium text-white break-all mt-0.5">
-              {settings.pixKey}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={handleCopyPix}
-            className="w-full min-h-[44px] inline-flex items-center justify-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-bold text-[#0F2D5C] hover:bg-blue-50 transition-colors focus-visible:outline-2 focus-visible:outline-white"
-          >
-            {copiedPix ? (
-              <>
-                <Check className="h-4 w-4 text-blue-700" strokeWidth={2.25} />
-                Chave PIX copiada!
-              </>
-            ) : (
-              <>
-                <Copy className="h-4 w-4" strokeWidth={1.75} />
-                Copiar Chave PIX
-              </>
-            )}
-          </button>
+          )}
         </div>
 
-        <div className="pt-2 border-t border-white/15 text-xs text-blue-100/80 space-y-1">
-          <p>
-            Secretaria / WhatsApp:{' '}
-            <strong className="font-semibold text-white tabular-nums">
-              {settings.whatsapp}
-            </strong>
-          </p>
-          <p>{settings.address}</p>
-        </div>
+        {(settings.whatsapp || settings.address) && (
+          <div className="pt-2 border-t border-white/15 text-xs text-blue-100/80 space-y-1">
+            {settings.whatsapp && (
+              <p>
+                Secretaria / WhatsApp:{' '}
+                <strong className="font-semibold text-white tabular-nums">
+                  {settings.whatsapp}
+                </strong>
+              </p>
+            )}
+            {settings.address && <p>{settings.address}</p>}
+          </div>
+        )}
       </div>
     </section>
   );

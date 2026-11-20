@@ -1,128 +1,31 @@
 {
-  "media": [
-    {
-      "id": "media-culto-familia",
-      "type": "banner",
-      "title": "Culto da Família — Uma Noite de Graça e Comunhão",
-      "description": "Traga sua família para um tempo especial de louvor, adoração e ministração da Palavra neste domingo às 19h no Templo Sede.",
-      "category": "Culto Especial",
-      "mediaUrl": "/src/assets/images/banner_culto_familia_1795174273486.jpg",
-      "pinned": true,
-      "createdAt": "2026-11-20T08:35:59.866Z",
-      "authorName": "Pr. Marcos Sales"
-    },
-    {
-      "id": "media-conferencia-jovens",
-      "type": "banner",
-      "title": "Encontro de Jovens — Geração Firme na Rocha",
-      "description": "Sábado às 19h30 teremos louvor com a banda local, palavra direcionada e comunhão após o culto no auditório principal.",
-      "category": "Juventude",
-      "mediaUrl": "/src/assets/images/banner_conferencia_jovens_1795174273447.jpg",
-      "pinned": true,
-      "createdAt": "2026-11-20T03:35:59.866Z",
-      "authorName": "Ministério Jovem AD Sales"
-    },
-    {
-      "id": "media-estudo-biblico",
-      "type": "banner",
-      "title": "Escola Bíblica e Estudo de Quarta-Feira",
-      "description": "Série expositiva no livro de Salmos: fortalecendo a fé nas estações da vida. Todas as quartas às 20h.",
-      "category": "Ensino Bíblico",
-      "mediaUrl": "/src/assets/images/banner_estudo_biblico_1795174273879.jpg",
-      "pinned": false,
-      "createdAt": "2026-11-19T09:35:59.866Z",
-      "authorName": "Pr. Marcos Sales"
-    },
-    {
-      "id": "media-aviso-solidario",
-      "type": "aviso",
-      "title": "Campanha de Alimentos e Ação Social",
-      "description": "Estamos arrecadando alimentos não perecíveis na recepção da igreja durante todos os cultos da semana para abençoar famílias do nosso bairro.",
-      "category": "Ação Social",
-      "mediaUrl": "",
-      "pinned": false,
-      "createdAt": "2026-11-18T19:35:59.866Z",
-      "authorName": "Diaconia AD Sales"
-    }
-  ],
+  "media": [],
+  "audios": [],
   "dailyWord": {
-    "verse": "O Senhor é a minha força e o meu escudo; nele o meu coração confia, e dele recebo ajuda.",
-    "reference": "Salmos 28:7",
-    "reflection": "Mesmo diante de semanas desafiadoras, quem descansa na presença de Deus encontra direção clara, paz no lar e vigor renovado para servir ao próximo.",
-    "pastorName": "Pr. Marcos Sales",
-    "updatedAt": "2026-11-20T09:35:59.866Z"
+    "verse": "",
+    "reference": "",
+    "reflection": "",
+    "pastorName": "",
+    "updatedAt": ""
   },
-  "schedule": [
-    {
-      "id": "sched-domingo-manha",
-      "title": "Escola Bíblica Dominical",
-      "dayOfWeek": "Domingo",
-      "time": "09:00",
-      "location": "Templo Sede e Salas de Ensino",
-      "leader": "Presb. Daniel Ferreira",
-      "rsvpCount": 35
-    },
-    {
-      "id": "sched-domingo-noite",
-      "title": "Culto da Família e Celebração",
-      "dayOfWeek": "Domingo",
-      "time": "19:00",
-      "location": "Templo Sede AD Sales",
-      "leader": "Pr. Marcos Sales",
-      "rsvpCount": 93
-    },
-    {
-      "id": "sched-quarta",
-      "title": "Culto de Ensino e Oração",
-      "dayOfWeek": "Quarta-feira",
-      "time": "20:00",
-      "location": "Templo Sede AD Sales",
-      "leader": "Pr. Marcos Sales",
-      "rsvpCount": 49
-    },
-    {
-      "id": "sched-sabado-jovens",
-      "title": "Culto dos Jovens e Adolescentes",
-      "dayOfWeek": "Sábado",
-      "time": "19:30",
-      "location": "Auditório Principal",
-      "leader": "Ev. Lucas & Equipe",
-      "rsvpCount": 58
-    }
-  ],
-  "prayers": [
-    {
-      "id": "pray-1",
-      "authorName": "Irmã Helena Costa",
-      "message": "Peço oração pela recuperação da cirurgia do meu esposo e pela paz da nossa família nesta semana.",
-      "isPrivate": false,
-      "amens": 18,
-      "createdAt": "2026-11-20T06:35:59.866Z"
-    },
-    {
-      "id": "pray-2",
-      "authorName": "Gabriel Oliveira",
-      "message": "Agradeço a Deus pela porta de emprego aberta e peço direção para este novo ciclo profissional.",
-      "isPrivate": false,
-      "amens": 24,
-      "createdAt": "2026-11-19T21:35:59.866Z"
-    }
-  ],
+  "schedule": [],
+  "prayers": [],
+  "members": [],
   "settings": {
     "radioEnabled": false,
     "radioStationName": "Rádio AD SALES",
     "radioStreamUrl": "",
     "churchName": "AD SALES",
     "tagline": "Igreja Evangélica — Fé, Palavra e Comunhão",
-    "address": "Av. das Nações, 420 — Centro",
-    "pixKey": "ofertas@adsales.org.br",
-    "pixBeneficiary": "Igreja Evangélica AD Sales",
-    "whatsapp": "(11) 99999-0000",
-    "pastorName": "Pr. Marcos Sales",
+    "address": "",
+    "pixKey": "",
+    "pixBeneficiary": "",
+    "whatsapp": "",
+    "pastorName": "Pastor",
     "pastorTitle": "Pastor Presidente",
-    "pastorAvatarUrl": "/src/assets/images/pastor_retrato_1795174273173.jpg",
+    "pastorAvatarUrl": "",
     "pastorPin": "JESUSVIRÁ"
   },
-  "updatedAt": "2026-11-20T13:24:53.108Z",
-  "audios": []
+  "updatedAt": "2026-11-20T13:47:59.843Z",
+  "eventPhotos": []
 }

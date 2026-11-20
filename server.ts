@@ -9,15 +9,23 @@ import type {
   ChurchSettings,
   ChurchSnapshot,
   DailyWord,
+  EventPhotoItem,
   MediaItem,
   MediaKind,
+  MemberProfile,
   PrayerRequest,
+  PublicMemberCard,
   ServiceScheduleItem,
 } from './src/types/church';
 import {
   MAX_VIDEO_BYTES,
   extractYouTubeEmbedUrl,
   isDirectVideoUrl,
+  normalizeText,
+  toBirthMonthDay,
+  validateBirthDate,
+  validateEventPhotoInput,
+  validateMemberInput,
   validateRadioStreamUrl,
 } from './src/utils/churchLogic';
 
@@ -36,138 +44,31 @@ interface StoredChurchData extends ChurchSnapshot {
 
 function createInitialData(): StoredChurchData {
   const now = new Date();
-  const hoursAgo = (h: number) =>
-    new Date(now.getTime() - h * 60 * 60 * 1000).toISOString();
 
   return {
-    media: [
-      {
-        id: 'media-culto-familia',
-        type: 'banner',
-        title: 'Culto da Família — Uma Noite de Graça e Comunhão',
-        description:
-          'Traga sua família para um tempo especial de louvor, adoração e ministração da Palavra neste domingo às 19h no Templo Sede.',
-        category: 'Culto Especial',
-        mediaUrl: '/src/assets/images/banner_culto_familia_1795174273486.jpg',
-        pinned: true,
-        createdAt: hoursAgo(3),
-        authorName: 'Pr. Marcos Sales',
-      },
-      {
-        id: 'media-conferencia-jovens',
-        type: 'banner',
-        title: 'Encontro de Jovens — Geração Firme na Rocha',
-        description:
-          'Sábado às 19h30 teremos louvor com a banda local, palavra direcionada e comunhão após o culto no auditório principal.',
-        category: 'Juventude',
-        mediaUrl: '/src/assets/images/banner_conferencia_jovens_1795174273447.jpg',
-        pinned: true,
-        createdAt: hoursAgo(8),
-        authorName: 'Ministério Jovem AD Sales',
-      },
-      {
-        id: 'media-estudo-biblico',
-        type: 'banner',
-        title: 'Escola Bíblica e Estudo de Quarta-Feira',
-        description:
-          'Série expositiva no livro de Salmos: fortalecendo a fé nas estações da vida. Todas as quartas às 20h.',
-        category: 'Ensino Bíblico',
-        mediaUrl: '/src/assets/images/banner_estudo_biblico_1795174273879.jpg',
-        pinned: false,
-        createdAt: hoursAgo(26),
-        authorName: 'Pr. Marcos Sales',
-      },
-      {
-        id: 'media-aviso-solidario',
-        type: 'aviso',
-        title: 'Campanha de Alimentos e Ação Social',
-        description:
-          'Estamos arrecadando alimentos não perecíveis na recepção da igreja durante todos os cultos da semana para abençoar famílias do nosso bairro.',
-        category: 'Ação Social',
-        mediaUrl: '',
-        pinned: false,
-        createdAt: hoursAgo(40),
-        authorName: 'Diaconia AD Sales',
-      },
-    ],
+    media: [],
+    eventPhotos: [],
     audios: [],
     dailyWord: {
-      verse:
-        'O Senhor é a minha força e o meu escudo; nele o meu coração confia, e dele recebo ajuda.',
-      reference: 'Salmos 28:7',
-      reflection:
-        'Mesmo diante de semanas desafiadoras, quem descansa na presença de Deus encontra direção clara, paz no lar e vigor renovado para servir ao próximo.',
-      pastorName: 'Pr. Marcos Sales',
-      updatedAt: hoursAgo(2),
+      verse: '',
+      reference: '',
+      reflection: '',
+      pastorName: '',
+      updatedAt: '',
     },
-    schedule: [
-      {
-        id: 'sched-domingo-manha',
-        title: 'Escola Bíblica Dominical',
-        dayOfWeek: 'Domingo',
-        time: '09:00',
-        location: 'Templo Sede e Salas de Ensino',
-        leader: 'Presb. Daniel Ferreira',
-        rsvpCount: 34,
-      },
-      {
-        id: 'sched-domingo-noite',
-        title: 'Culto da Família e Celebração',
-        dayOfWeek: 'Domingo',
-        time: '19:00',
-        location: 'Templo Sede AD Sales',
-        leader: 'Pr. Marcos Sales',
-        rsvpCount: 92,
-      },
-      {
-        id: 'sched-quarta',
-        title: 'Culto de Ensino e Oração',
-        dayOfWeek: 'Quarta-feira',
-        time: '20:00',
-        location: 'Templo Sede AD Sales',
-        leader: 'Pr. Marcos Sales',
-        rsvpCount: 48,
-      },
-      {
-        id: 'sched-sabado-jovens',
-        title: 'Culto dos Jovens e Adolescentes',
-        dayOfWeek: 'Sábado',
-        time: '19:30',
-        location: 'Auditório Principal',
-        leader: 'Ev. Lucas & Equipe',
-        rsvpCount: 57,
-      },
-    ],
-    prayers: [
-      {
-        id: 'pray-1',
-        authorName: 'Irmã Helena Costa',
-        message:
-          'Peço oração pela recuperação da cirurgia do meu esposo e pela paz da nossa família nesta semana.',
-        isPrivate: false,
-        amens: 18,
-        createdAt: hoursAgo(5),
-      },
-      {
-        id: 'pray-2',
-        authorName: 'Gabriel Oliveira',
-        message:
-          'Agradeço a Deus pela porta de emprego aberta e peço direção para este novo ciclo profissional.',
-        isPrivate: false,
-        amens: 24,
-        createdAt: hoursAgo(14),
-      },
-    ],
+    schedule: [],
+    prayers: [],
+    members: [],
     settings: {
       churchName: 'AD SALES',
       tagline: 'Igreja Evangélica — Fé, Palavra e Comunhão',
-      address: 'Av. das Nações, 420 — Centro',
-      pixKey: 'ofertas@adsales.org.br',
-      pixBeneficiary: 'Igreja Evangélica AD Sales',
-      whatsapp: '(11) 99999-0000',
-      pastorName: 'Pr. Marcos Sales',
+      address: '',
+      pixKey: '',
+      pixBeneficiary: '',
+      whatsapp: '',
+      pastorName: 'Pastor',
       pastorTitle: 'Pastor Presidente',
-      pastorAvatarUrl: '/src/assets/images/pastor_retrato_1795174273173.jpg',
+      pastorAvatarUrl: '',
       pastorPin: process.env.PASTOR_PIN ?? 'JESUSVIRÁ',
       radioEnabled: false,
       radioStationName: 'Rádio AD SALES',
@@ -185,7 +86,9 @@ function loadStore(): StoredChurchData {
       if (parsed && Array.isArray(parsed.media) && parsed.settings) {
         return {
           ...parsed,
+          eventPhotos: Array.isArray(parsed.eventPhotos) ? parsed.eventPhotos : [],
           audios: Array.isArray(parsed.audios) ? parsed.audios : [],
+          members: Array.isArray(parsed.members) ? parsed.members : [],
           settings: {
             radioEnabled: false,
             radioStationName: 'Rádio AD SALES',
@@ -196,7 +99,7 @@ function loadStore(): StoredChurchData {
       }
     }
   } catch (err) {
-    console.error('Erro ao ler data/church-data.json, recriando seed:', err);
+    console.error('Erro ao ler data/church-data.json, recriando estrutura inicial:', err);
   }
   const initial = createInitialData();
   saveStore(initial);
@@ -212,16 +115,42 @@ function saveStore(data: StoredChurchData): void {
 
 let store: StoredChurchData = loadStore();
 
-function toSnapshot(includePrivatePrayers: boolean): ChurchSnapshot {
+function toSnapshot(isPastor: boolean): ChurchSnapshot {
   const { pastorPin: _pin, ...safeSettings } = store.settings;
+  const allMembers = store.members ?? [];
+
+  const publicMembers: PublicMemberCard[] = allMembers
+    .filter((m) => Boolean(m.showInMembers))
+    .map((m) => ({
+      id: m.id,
+      username: m.username,
+      avatarUrl: m.avatarUrl,
+      roleTitle: m.roleTitle?.trim() || 'Membro',
+      birthMonthDay: toBirthMonthDay(m.birthDate),
+    }));
+
+  const birthdays: PublicMemberCard[] = allMembers
+    .filter((m) => Boolean(toBirthMonthDay(m.birthDate)))
+    .map((m) => ({
+      id: m.id,
+      username: m.username,
+      avatarUrl: m.avatarUrl,
+      roleTitle: m.showInMembers ? (m.roleTitle?.trim() || 'Membro') : '',
+      birthMonthDay: toBirthMonthDay(m.birthDate),
+    }));
+
   return {
     media: store.media,
+    eventPhotos: store.eventPhotos ?? [],
     audios: store.audios ?? [],
     dailyWord: store.dailyWord,
     schedule: store.schedule,
-    prayers: includePrivatePrayers
+    prayers: isPastor
       ? store.prayers
       : store.prayers.filter((p) => !p.isPrivate),
+    members: isPastor ? allMembers : [],
+    publicMembers,
+    birthdays,
     settings: safeSettings,
     updatedAt: store.updatedAt,
   };
@@ -470,6 +399,68 @@ async function startServer() {
     res.json({ ok: true, snapshot: toSnapshot(true) });
   });
 
+  // Upload one or multiple event photos for the church event gallery (Pastor only)
+  app.post(
+    '/api/event-photos',
+    requirePastor,
+    upload.array('photos', 12),
+    (req, res) => {
+      const files = Array.isArray(req.files) ? req.files : [];
+      const title = String(req.body?.title ?? '').trim();
+      const eventName = String(req.body?.eventName ?? '').trim();
+      const eventDate = String(req.body?.eventDate ?? '').trim();
+      const caption = String(req.body?.caption ?? '').trim();
+
+      const validation = validateEventPhotoInput({
+        title,
+        eventName,
+        fileCount: files.length,
+        files: files.map((f) => ({ size: f.size, type: f.mimetype })),
+      });
+
+      if (!validation.valid) {
+        for (const f of files) {
+          deleteUploadedFileIfLocal(`/uploads/${f.filename}`);
+        }
+        res.status(400).json({ error: validation.error });
+        return;
+      }
+
+      const nowIso = new Date().toISOString();
+      const createdItems: EventPhotoItem[] = files.map((f, idx) => ({
+        id: `evphoto-${crypto.randomUUID().slice(0, 8)}`,
+        title: files.length > 1 ? `${title.slice(0, 110)} (${idx + 1}/${files.length})` : title.slice(0, 120),
+        eventName: eventName.slice(0, 80),
+        eventDate: /^\d{4}-\d{2}-\d{2}$/.test(eventDate) ? eventDate : undefined,
+        caption: caption.slice(0, 300) || undefined,
+        photoUrl: `/uploads/${f.filename}`,
+        authorName: store.settings.pastorName,
+        createdAt: nowIso,
+      }));
+
+      store.eventPhotos = [...createdItems, ...(store.eventPhotos ?? [])];
+      saveStore(store);
+      broadcastUpdate();
+      res.status(201).json({ photos: createdItems, snapshot: toSnapshot(true) });
+    }
+  );
+
+  // Pastor deletes an event photo
+  app.delete('/api/event-photos/:id', requirePastor, (req, res) => {
+    const list = store.eventPhotos ?? [];
+    const idx = list.findIndex((p) => p.id === req.params.id);
+    if (idx === -1) {
+      res.status(404).json({ error: 'Foto do evento não encontrada.' });
+      return;
+    }
+    const [removed] = list.splice(idx, 1);
+    store.eventPhotos = list;
+    deleteUploadedFileIfLocal(removed.photoUrl);
+    saveStore(store);
+    broadcastUpdate();
+    res.json({ ok: true, snapshot: toSnapshot(true) });
+  });
+
   // Upload recorded or selected audio message for the church
   app.post(
     '/api/audios/upload',
@@ -652,6 +643,178 @@ async function startServer() {
       return;
     }
     store.prayers.splice(idx, 1);
+    saveStore(store);
+    broadcastUpdate();
+    res.json({ ok: true, snapshot: toSnapshot(true) });
+  });
+
+  // Member registers with username, profile photo, and optional birthDate
+  app.post('/api/members', upload.single('avatar'), (req, res) => {
+    const username = String(req.body?.username ?? '').trim();
+    const birthDate = String(req.body?.birthDate ?? '').trim();
+
+    const validation = validateMemberInput({
+      username,
+      hasAvatar: Boolean(req.file),
+      fileSizeBytes: req.file?.size,
+      mimeType: req.file?.mimetype,
+    });
+
+    if (!validation.valid) {
+      if (req.file) deleteUploadedFileIfLocal(`/uploads/${req.file.filename}`);
+      res.status(400).json({ error: validation.error });
+      return;
+    }
+
+    const birthValidation = validateBirthDate(birthDate);
+    if (!birthValidation.valid) {
+      if (req.file) deleteUploadedFileIfLocal(`/uploads/${req.file.filename}`);
+      res.status(400).json({ error: birthValidation.error });
+      return;
+    }
+
+    const list = store.members ?? [];
+    const normalized = normalizeText(username);
+    if (list.some((m) => normalizeText(m.username) === normalized)) {
+      if (req.file) deleteUploadedFileIfLocal(`/uploads/${req.file.filename}`);
+      res.status(409).json({
+        error: 'Este nome de usuário já está cadastrado. Escolha outro.',
+      });
+      return;
+    }
+
+    const member: MemberProfile = {
+      id: `mem-${crypto.randomUUID().slice(0, 8)}`,
+      username,
+      avatarUrl: req.file ? `/uploads/${req.file.filename}` : '',
+      birthDate: birthDate || undefined,
+      roleTitle: '',
+      showInMembers: false,
+      createdAt: new Date().toISOString(),
+    };
+
+    store.members = [member, ...list];
+    saveStore(store);
+    broadcastUpdate();
+    res.status(201).json({ member });
+  });
+
+  // Member updates own username, profile photo, or birthDate
+  app.patch('/api/members/:id', upload.single('avatar'), (req, res) => {
+    const list = store.members ?? [];
+    const idx = list.findIndex((m) => m.id === req.params.id);
+    if (idx === -1) {
+      if (req.file) deleteUploadedFileIfLocal(`/uploads/${req.file.filename}`);
+      res.status(404).json({ error: 'Cadastro não encontrado.' });
+      return;
+    }
+
+    const existing = list[idx];
+    const nextUsername =
+      typeof req.body?.username === 'string'
+        ? req.body.username.trim()
+        : existing.username;
+    const nextBirthDate =
+      typeof req.body?.birthDate === 'string'
+        ? req.body.birthDate.trim()
+        : (existing.birthDate ?? '');
+
+    const validation = validateMemberInput({
+      username: nextUsername,
+      hasAvatar: Boolean(req.file),
+      fileSizeBytes: req.file?.size,
+      mimeType: req.file?.mimetype,
+    });
+
+    if (!validation.valid) {
+      if (req.file) deleteUploadedFileIfLocal(`/uploads/${req.file.filename}`);
+      res.status(400).json({ error: validation.error });
+      return;
+    }
+
+    const birthValidation = validateBirthDate(nextBirthDate);
+    if (!birthValidation.valid) {
+      if (req.file) deleteUploadedFileIfLocal(`/uploads/${req.file.filename}`);
+      res.status(400).json({ error: birthValidation.error });
+      return;
+    }
+
+    const normalized = normalizeText(nextUsername);
+    if (
+      list.some(
+        (m) => m.id !== existing.id && normalizeText(m.username) === normalized
+      )
+    ) {
+      if (req.file) deleteUploadedFileIfLocal(`/uploads/${req.file.filename}`);
+      res.status(409).json({
+        error: 'Este nome de usuário já está cadastrado. Escolha outro.',
+      });
+      return;
+    }
+
+    let nextAvatarUrl = existing.avatarUrl;
+    if (req.file) {
+      deleteUploadedFileIfLocal(existing.avatarUrl);
+      nextAvatarUrl = `/uploads/${req.file.filename}`;
+    }
+
+    const updated: MemberProfile = {
+      ...existing,
+      username: nextUsername,
+      avatarUrl: nextAvatarUrl,
+      birthDate: nextBirthDate || undefined,
+    };
+
+    list[idx] = updated;
+    store.members = list;
+    saveStore(store);
+    broadcastUpdate();
+    res.json({ member: updated });
+  });
+
+  // Pastor defines whether a member appears in the public Members directory and their role/title
+  app.patch('/api/members/:id/pastor', requirePastor, (req, res) => {
+    const list = store.members ?? [];
+    const idx = list.findIndex((m) => m.id === req.params.id);
+    if (idx === -1) {
+      res.status(404).json({ error: 'Membro não encontrado.' });
+      return;
+    }
+
+    const existing = list[idx];
+    const showInMembers =
+      typeof req.body?.showInMembers === 'boolean'
+        ? req.body.showInMembers
+        : Boolean(existing.showInMembers);
+    const roleTitle =
+      typeof req.body?.roleTitle === 'string'
+        ? req.body.roleTitle.trim().slice(0, 60)
+        : (existing.roleTitle ?? '');
+
+    const updated: MemberProfile = {
+      ...existing,
+      showInMembers,
+      roleTitle,
+    };
+
+    list[idx] = updated;
+    store.members = list;
+    saveStore(store);
+    broadcastUpdate();
+    res.json({ member: updated, snapshot: toSnapshot(true) });
+  });
+
+  // Pastor removes a registered member
+  app.delete('/api/members/:id', requirePastor, (req, res) => {
+    const list = store.members ?? [];
+    const idx = list.findIndex((m) => m.id === req.params.id);
+    if (idx === -1) {
+      res.status(404).json({ error: 'Membro não encontrado.' });
+      return;
+    }
+    const [removed] = list.splice(idx, 1);
+    store.members = list;
+    deleteUploadedFileIfLocal(removed.avatarUrl);
     saveStore(store);
     broadcastUpdate();
     res.json({ ok: true, snapshot: toSnapshot(true) });

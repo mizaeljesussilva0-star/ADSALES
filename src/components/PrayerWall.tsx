@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { Heart, Lock, Send } from 'lucide-react';
 import type { PrayerRequest } from '../types/church';
 import { formatShortDatePt, validatePrayerInput } from '../utils/churchLogic';
@@ -6,6 +6,7 @@ import { formatShortDatePt, validatePrayerInput } from '../utils/churchLogic';
 interface PrayerWallProps {
   prayers: PrayerRequest[];
   amenedIds: string[];
+  defaultAuthorName?: string;
   onSubmitPrayer: (payload: {
     authorName: string;
     message: string;
@@ -17,15 +18,23 @@ interface PrayerWallProps {
 export function PrayerWall({
   prayers,
   amenedIds,
+  defaultAuthorName = '',
   onSubmitPrayer,
   onAmenPrayer,
 }: PrayerWallProps) {
-  const [authorName, setAuthorName] = useState('');
+  const [authorName, setAuthorName] = useState(defaultAuthorName);
   const [message, setMessage] = useState('');
   const [isPrivate, setIsPrivate] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+
+  useEffect(() => {
+    if (defaultAuthorName && !authorName) {
+      setAuthorName(defaultAuthorName);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [defaultAuthorName]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -101,7 +110,7 @@ export function PrayerWall({
             maxLength={60}
             value={authorName}
             onChange={(e) => setAuthorName(e.target.value)}
-            placeholder="Ex: Maria Clara"
+            placeholder="Seu nome ou usuário"
             className="w-full min-h-[44px] rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:bg-white focus:outline-none"
           />
         </div>

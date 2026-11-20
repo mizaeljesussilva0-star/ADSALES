@@ -11,6 +11,10 @@ interface WordOfTheDayProps {
 export function WordOfTheDay({ dailyWord, settings }: WordOfTheDayProps) {
   const [copied, setCopied] = useState(false);
 
+  if (!dailyWord.verse?.trim()) {
+    return null;
+  }
+
   const handleShare = async () => {
     const shareText = `"${dailyWord.verse}" (${dailyWord.reference}) — ${settings.churchName} Igreja Evangélica`;
 
@@ -63,14 +67,14 @@ export function WordOfTheDay({ dailyWord, settings }: WordOfTheDayProps) {
         <div className="flex flex-row lg:flex-col items-center lg:items-end justify-between gap-4 pt-4 lg:pt-0 border-t lg:border-t-0 border-slate-100 shrink-0">
           <div className="flex items-center gap-3">
             <img
-              src={settings.pastorAvatarUrl}
-              alt={settings.pastorName}
+              src={settings.pastorAvatarUrl || '/assets/ad-sales-logo.png'}
+              alt={settings.pastorName || settings.churchName}
               referrerPolicy="no-referrer"
               className="h-12 w-12 rounded-full object-cover border border-slate-200 shrink-0"
             />
             <div className="text-left lg:text-right">
               <p className="text-sm font-semibold text-slate-900">
-                {dailyWord.pastorName || settings.pastorName}
+                {dailyWord.pastorName || settings.pastorName || 'Pastor'}
               </p>
               <p className="text-xs text-slate-500">{settings.pastorTitle}</p>
             </div>

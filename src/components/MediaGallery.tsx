@@ -130,10 +130,14 @@ export function MediaGallery({
         <div className="rounded-3xl border border-slate-200 bg-white p-10 text-center space-y-3">
           <ImageIcon className="h-9 w-9 text-slate-300 mx-auto" strokeWidth={1.5} />
           <p className="text-base font-semibold text-slate-800">
-            Nenhuma publicação encontrada
+            {items.length === 0
+              ? 'Nenhuma publicação no momento'
+              : 'Nenhuma publicação encontrada'}
           </p>
           <p className="text-sm text-slate-500">
-            Tente selecionar outra categoria ou limpar o campo de busca.
+            {items.length === 0
+              ? 'Assim que o Pastor publicar banners, vídeos ou avisos, eles aparecerão aqui.'
+              : 'Tente selecionar outra categoria ou limpar o campo de busca.'}
           </p>
           {(filter !== 'all' || query) && (
             <button
