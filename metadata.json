@@ -1,0 +1,6 @@
+{
+  "name": "AD SALES — Igreja Evangélica",
+  "description": "Aplicativo oficial da Igreja Evangélica AD SALES com gestão de banners, vídeos, rádio, áudios e devocionais em tempo real pelo Painel do Pastor.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
